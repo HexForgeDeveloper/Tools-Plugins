@@ -3,6 +3,7 @@
 #include "Tests/DataAssetManagerTestTypes.h"
 
 #include "Misc/AutomationTest.h"
+#include "UObject/StrongObjectPtr.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -22,6 +23,9 @@ bool FDataAssetManagerWidgetTest::RunTest(const FString& Parameters)
 	if (Parameters == TEXT("IsSelectedAssetValid"))
 	{
 		TSharedRef<STestDataAssetManagerWidget> Widget = SNew(STestDataAssetManagerWidget);
+		// Establish selection explicitly; a consuming project may contain no Data Assets.
+		TStrongObjectPtr<UTestDataAsset> Asset(NewObject<UTestDataAsset>());
+		Widget->SelectAsset_Test(MakeShared<FAssetData>(Asset.Get()));
 
 		const bool bValid = Widget->IsSelectedAssetValid_Test(TEXT(""));
 		TestTrue(TEXT("Selected asset should be valid"), bValid);

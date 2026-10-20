@@ -129,6 +129,11 @@ public:
 	{
 		return Super::IsSelectedAssetValid(CustomMessage);
 	}
+
+	void SelectAsset_Test(TSharedPtr<FAssetData> Asset)
+	{
+		Super::OnAssetSelected(Asset, ESelectInfo::Direct);
+	}
 };
 
 #endif
