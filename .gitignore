@@ -1,0 +1,22 @@
+# Generated Unreal files, at any plugin depth
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+.vs/
+.idea/
+.vscode/
+*.sln
+*.suo
+*.VC.db
+*.VC.opendb
+*.obj
+*.pdb
+*.dll
+*.lib
+*.exe
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
