@@ -528,3 +528,18 @@ Default source extensions:
 
 ValidatorX is intended for editor-time quality gates, project cleanup, and review workflows where content issues should be visible before they become runtime problems.
 
+## WireBundle
+
+WireBundle groups Blueprint and Material connections using native reroute nodes.
+Ctrl+Alt+B creates a bundle from selected connected nodes; on a registered reroute,
+it explicitly selects the entire bundle. Ctrl+Alt+A registers existing chains.
+Ctrl+Alt+left-drag across wires previews a new bundle; the mouse wheel changes
+the number of reroute columns during the gesture.
+
+Select multiple reroutes to move, resize, align or collapse their chains. Shape
+editing affects exactly the selected nodes; selecting a single reroute keeps
+Unreal's normal mouse interaction. Creation, unbundling and shape edits support
+Undo/Redo. Settings are under Editor Preferences > Plugins > Wire Bundle.
+
+See [WireBundle/README.md](WireBundle/README.md) for controls and limitations.
+

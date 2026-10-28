@@ -17,6 +17,7 @@ Unreal builds the modules for the consuming project.
 | TextureChannelPacker | Pack, repack and unpack texture channels |
 | UNotepad | In-editor text, C++, Verse, JSON and CSV editing |
 | ValidatorX | Blueprint and material validation rules |
+| WireBundle | Bundle, align and reshape native reroutes in Blueprint and Material graphs |
 
 See [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) for entry points, settings and workflows.
 Most modules are editor-only. PerformanceInspector also has a runtime module.
@@ -95,7 +96,7 @@ copies with a submodule is a separate migration.
 
 In the Unreal Editor Session Frontend automation window, use these test filters:
 `CppTemplateGenerator`, `DataAssetManager`, `OutlinerToolkit`,
-`PerformanceInspector`, `UNotepad`, `ValidatorX`.
+`PerformanceInspector`, `UNotepad`, `ValidatorX`, `WireBundle`.
 
 ContentBrowserToolkit and TextureChannelPacker currently have no dedicated
 automation test modules. Tests should run in a disposable test project because

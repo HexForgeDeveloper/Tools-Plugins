@@ -1,0 +1,22 @@
+{
+  "FileVersion": 3,
+  "Version": 10,
+  "VersionName": "0.8.0",
+  "FriendlyName": "Wire Bundle",
+  "Description": "Bundle selected Blueprint and Material connections using native reroute nodes.",
+  "Category": "Editor",
+  "CanContainContent": false,
+  "Modules": [
+    {
+      "Name": "WireBundle",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "WireBundleTests",
+      "Type": "Editor",
+      "LoadingPhase": "PostEngineInit"
+    }
+  ],
+  "Installed": true
+}
