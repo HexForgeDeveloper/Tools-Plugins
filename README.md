@@ -88,9 +88,17 @@ The submodule downloads this entire collection. Enable only the plugins needed
 in each project. Git cannot use a subdirectory as an independent submodule; for
 independent downloads/versioning, each plugin would need its own repository.
 
-Tools Project's existing plugin copies do not automatically synchronize with
-this repository. Future shared changes should be made here; replacing those
-copies with a submodule is a separate migration.
+Tools Project's existing plugin copies, a standalone Tools-Plugins clone, and
+a game's Tools-Plugins submodule are separate working trees. Editing one does
+not update the others.
+
+WireBundle is currently developed in `ToolsProject/Plugins/WireBundle`. Verify
+changes there, export the plugin sources and tests to this collection, then
+build and test the collection in a disposable host. Preserve the collection's
+DataAssetManager test fixtures, which do not require host-project assets.
+Publish the reviewed collection commit before updating a game's submodule
+pointer. Regenerate and build each consuming project's Editor target.
+Replacing Tools Project's plugin copies with a submodule is a separate migration.
 
 ## Tests
 

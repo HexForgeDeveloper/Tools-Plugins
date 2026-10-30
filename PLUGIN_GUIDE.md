@@ -541,5 +541,15 @@ editing affects exactly the selected nodes; selecting a single reroute keeps
 Unreal's normal mouse interaction. Creation, unbundling and shape edits support
 Undo/Redo. Settings are under Editor Preferences > Plugins > Wire Bundle.
 
+The shape toolbar uses viewport-clamped buttons with rectangular hit targets.
+Enable **Movement > Routing > Avoid Nodes** to plan around node bodies. Routing
+supports forward and backward bundles, optional extra bends, bounded search,
+and a shared preview/commit plan. Opposing directions in one obstacle-avoiding
+bundle are rejected before graph edits.
+
+WireBundle includes 50 automation cases, including Automation Driver scenarios
+for Blueprint and Material graphs. Run UI tests with a renderer in a disposable
+editor process; they reset the transaction history.
+
 See [WireBundle/README.md](WireBundle/README.md) for controls and limitations.
 
