@@ -63,7 +63,7 @@ namespace WireBundleUI
 			GetOrAddSlot(ENodeZone::Center)[SNew(SBorder).BorderBackgroundColor(FLinearColor(0.2f, 0.2f, 0.2f))
 					[SNew(SBox).WidthOverride(Node->NodeWidth).HeightOverride(Node->NodeHeight)]];
 		}
-		virtual void	  UpdateGraphNode() override {}
+		virtual void UpdateGraphNode() override {}
 		virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(GraphNode->NodeWidth, GraphNode->NodeHeight); }
 	};
 	struct FRoutingWallFactory final : FGraphNodeFactory
@@ -105,20 +105,20 @@ namespace WireBundleUI
 
 	struct FFixture : public FGCObject, public FEditorUndoClient
 	{
-		TObjectPtr<UObject>			  Asset = nullptr;
-		virtual void				  AddReferencedObjects(FReferenceCollector& Collector) override { Collector.AddReferencedObject(Asset); }
-		virtual FString				  GetReferencerName() const override { return TEXT("WireBundleUIFixture"); }
-		TSharedPtr<IMaterialEditor>	  MaterialEditor;
-		UEdGraph*					  Graph = nullptr;
-		TArray<UEdGraphNode*>		  Nodes;
-		TSharedPtr<SGraphEditor>	  Editor;
-		TSharedPtr<SWindow>			  Window;
-		TSharedPtr<SWidget>			  Outside;
+		TObjectPtr<UObject> Asset = nullptr;
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override { Collector.AddReferencedObject(Asset); }
+		virtual FString GetReferencerName() const override { return TEXT("WireBundleUIFixture"); }
+		TSharedPtr<IMaterialEditor> MaterialEditor;
+		UEdGraph* Graph = nullptr;
+		TArray<UEdGraphNode*> Nodes;
+		TSharedPtr<SGraphEditor> Editor;
+		TSharedPtr<SWindow> Window;
+		TSharedPtr<SWidget> Outside;
 		TSharedPtr<FGraphNodeFactory> RoutingWallFactory;
-		FWireBundleResolvedSettings	  SavedSettings;
-		TWeakPtr<SWidget>			  PreviousFocus;
-		TWeakPtr<SWindow>			  PreviousWindow;
-		bool						  bAllowedTooltips = true;
+		FWireBundleResolvedSettings SavedSettings;
+		TWeakPtr<SWidget> PreviousFocus;
+		TWeakPtr<SWindow> PreviousWindow;
+		bool bAllowedTooltips = true;
 
 		// A standalone SGraphEditor does not receive a Blueprint editor's undo
 		// refresh callbacks. Rebuild its pin widgets after restoring transactions.
@@ -129,8 +129,8 @@ namespace WireBundleUI
 				Editor->NotifyGraphChanged();
 			}
 		}
-		virtual void		PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
-		SGraphPanel&		Panel() const { return *Editor->GetGraphPanel(); }
+		virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
+		SGraphPanel& Panel() const { return *Editor->GetGraphPanel(); }
 		static UEdGraphPin* Pin(UEdGraphNode* Node, EEdGraphPinDirection Direction)
 		{
 			for (auto P : Node->Pins)
@@ -258,9 +258,9 @@ namespace WireBundleUI
 		FIntPoint Offset(FVector2D GraphPoint, FVector2D DesktopAdjustment = FVector2D::ZeroVector) const
 		{
 			const auto& G = Panel().GetCachedGeometry();
-			const auto	P = G.LocalToAbsolute((GraphPoint - Panel().GetViewOffset()) * Panel().GetZoomAmount()) + DesktopAdjustment;
+			const auto P = G.LocalToAbsolute((GraphPoint - Panel().GetViewOffset()) * Panel().GetZoomAmount()) + DesktopAdjustment;
 			const auto& WindowGeometry = Window->GetCachedGeometry();
-			const auto	Center = WindowGeometry.LocalToAbsolute(WindowGeometry.GetLocalSize() * 0.5);
+			const auto Center = WindowGeometry.LocalToAbsolute(WindowGeometry.GetLocalSize() * 0.5);
 			return FIntPoint(FMath::RoundToInt(P.X - Center.X), FMath::RoundToInt(P.Y - Center.Y));
 		}
 		void Destroy()
@@ -302,14 +302,14 @@ namespace WireBundleUI
 } // namespace WireBundleUI
 
 BEGIN_DEFINE_SPEC(FWireBundleUISpec, "WireBundle.UI", EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
-TUniquePtr<WireBundleUI::FFixture>				 Fixture;
-FAutomationDriverPtr							 Driver;
+TUniquePtr<WireBundleUI::FFixture> Fixture;
+FAutomationDriverPtr Driver;
 TSharedPtr<IElementLocator, ESPMode::ThreadSafe> GraphLocator;
 TSharedPtr<IElementLocator, ESPMode::ThreadSafe> PointerLocator;
-void											 Move(IActionSequence& Actions, FVector2D Point, FVector2D Adjustment = FVector2D::ZeroVector);
-void											 MoveToolbar(IActionSequence& Actions, int32 Handle);
-bool											 Perform(TFunctionRef<void(IActionSequence&)> Build);
-void											 CheckUnchanged(const TArray<FVector2D>& Before);
+void Move(IActionSequence& Actions, FVector2D Point, FVector2D Adjustment = FVector2D::ZeroVector);
+void MoveToolbar(IActionSequence& Actions, int32 Handle);
+bool Perform(TFunctionRef<void(IActionSequence&)> Build);
+void CheckUnchanged(const TArray<FVector2D>& Before);
 END_DEFINE_SPEC(FWireBundleUISpec)
 
 void FWireBundleUISpec::Move(IActionSequence& Actions, FVector2D Point, FVector2D Adjustment)
@@ -321,7 +321,7 @@ void FWireBundleUISpec::Move(IActionSequence& Actions, FVector2D Point, FVector2
 void FWireBundleUISpec::MoveToolbar(IActionSequence& Actions, int32 Handle)
 {
 	const auto Offset = WireBundleUI::OnGameThread([&] {
-		auto&					   Panel = Fixture->Panel();
+		auto& Panel = Fixture->Panel();
 		WireBundle::FShapeSnapshot Shape;
 		WireBundle::CaptureSelectedShape(StaticCastSharedRef<SGraphPanel>(Panel.AsShared()), Shape);
 		double Left = DBL_MAX, Right = -DBL_MAX, Top = DBL_MAX;
@@ -332,9 +332,9 @@ void FWireBundleUISpec::MoveToolbar(IActionSequence& Actions, int32 Handle)
 			Top = FMath::Min(Top, P.Y + 12);
 		}
 		const auto& G = Panel.GetCachedGeometry();
-		const auto	Anchor = G.LocalToAbsolute((FVector2D((Left + Right) * 0.5, Top) - Panel.GetViewOffset()) * Panel.GetZoomAmount());
-		const auto	H = WireBundle::ShapeToolbarHandles(Anchor, G.GetLayoutBoundingRect(), ResolveWireBundleSettings().Appearance.ShapeHandleRadius)[Handle];
-		const auto	Center = G.LocalToAbsolute(G.GetLocalSize() * 0.5);
+		const auto Anchor = G.LocalToAbsolute((FVector2D((Left + Right) * 0.5, Top) - Panel.GetViewOffset()) * Panel.GetZoomAmount());
+		const auto H = WireBundle::ShapeToolbarHandles(Anchor, G.GetLayoutBoundingRect(), ResolveWireBundleSettings().Appearance.ShapeHandleRadius)[Handle];
+		const auto Center = G.LocalToAbsolute(G.GetLocalSize() * 0.5);
 		return FIntPoint(FMath::RoundToInt(H.X - Center.X), FMath::RoundToInt(H.Y - Center.Y));
 	});
 	Actions.MoveToElement(GraphLocator.ToSharedRef(), Offset.X, Offset.Y).Wait(FTimespan::FromMilliseconds(100));
@@ -349,7 +349,7 @@ bool FWireBundleUISpec::Perform(TFunctionRef<void(IActionSequence&)> Build)
 	{
 		WireBundleUI::OnGameThread([&] {
 			TArray<FColor> Pixels;
-			FIntVector	   Size;
+			FIntVector Size;
 			if (FSlateApplication::Get().TakeScreenshot(Fixture->Window.ToSharedRef(), Pixels, Size))
 			{
 				TArray64<uint8> Png;
@@ -409,10 +409,10 @@ void FWireBundleUISpec::Define()
 			It("SingleNodeDragKeepsNeighbours", EAsyncExecution::ThreadPool, [this] {
 				const auto Before = WireBundleUI::OnGameThread([&] { Fixture->Select({1}); return Fixture->Positions(); });
 				const auto Offset = WireBundleUI::OnGameThread([&] {
-					const auto	Node = Fixture->Panel().GetNodeWidgetFromGuid(Fixture->Nodes[1]->NodeGuid);
+					const auto Node = Fixture->Panel().GetNodeWidgetFromGuid(Fixture->Nodes[1]->NodeGuid);
 					const auto& G = Fixture->Panel().GetCachedGeometry();
-					const auto	P = Node->GetCachedGeometry().LocalToAbsolute(FVector2D(8, 8));
-					const auto	D = P - G.LocalToAbsolute(G.GetLocalSize() * 0.5);
+					const auto P = Node->GetCachedGeometry().LocalToAbsolute(FVector2D(8, 8));
+					const auto D = P - G.LocalToAbsolute(G.GetLocalSize() * 0.5);
 					return FIntPoint(FMath::RoundToInt(D.X), FMath::RoundToInt(D.Y));
 				});
 				Perform([&](IActionSequence& A) {
@@ -519,7 +519,7 @@ void FWireBundleUISpec::Define()
 					else
 					{
 						FGraphNodeCreator<UK2Node_CallFunction> Creator(*Fixture->Graph);
-						auto									Call = Creator.CreateNode();
+						auto Call = Creator.CreateNode();
 						Call->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(TEXT("PrintString")));
 						Creator.Finalize();
 						Obstacle = Call;
@@ -547,7 +547,7 @@ void FWireBundleUISpec::Define()
 					return;
 				}
 				const auto Before = WireBundleUI::OnGameThread([&] { return Fixture->Graph->Nodes.Num(); });
-				auto	   Gesture = [&] {
+				auto Gesture = [&] {
 					Perform([&](IActionSequence& A) {
 						Move(A, { 600, 120 });
 						A.Press(EKeys::LeftControl).Press(EKeys::LeftAlt).Press(EMouseButtons::Left).MoveByOffset(0, 310).Wait(FTimespan::FromMilliseconds(150)).Release(EMouseButtons::Left).Release(EKeys::LeftAlt).Release(EKeys::LeftControl);
@@ -625,7 +625,7 @@ void FWireBundleUISpec::Define()
 							else
 							{
 								FGraphNodeCreator<UK2Node_CallFunction> Creator(*Fixture->Graph);
-								auto									Call = Creator.CreateNode();
+								auto Call = Creator.CreateNode();
 								Call->SetFromFunction(UKismetSystemLibrary::StaticClass()->FindFunctionByName(TEXT("PrintString")));
 								Creator.Finalize();
 								Wall = Call;
@@ -713,15 +713,15 @@ void FWireBundleUISpec::Define()
 								}
 							}
 						}
-						const auto	  Panel = StaticCastSharedRef<SGraphPanel>(Fixture->Panel().AsShared());
-						const auto	  Captured = WireBundle::CaptureWireSnapshot(Panel, ResolveWireBundleSettings().Gesture);
+						const auto Panel = StaticCastSharedRef<SGraphPanel>(Fixture->Panel().AsShared());
+						const auto Captured = WireBundle::CaptureWireSnapshot(Panel, ResolveWireBundleSettings().Gesture);
 						TArray<FGuid> Owned;
 						for (const auto& W : Records[0].Wires)
 						{
 							Owned.Append(W.Reroutes);
 						}
 						TArray<FBox2D> Walls;
-						const auto&	   G = Panel->GetCachedGeometry();
+						const auto& G = Panel->GetCachedGeometry();
 						for (auto Node : Fixture->Graph->Nodes)
 						{
 							if (Node->NodeComment == TEXT("WireBundle routing test wall"))
@@ -781,7 +781,7 @@ void FWireBundleUISpec::Define()
 				WireBundleUI::OnGameThread([&] {
 					TestEqual(TEXT("Two wires get three new reroutes each"), Fixture->Graph->Nodes.Num(), Before + 6);
 					const auto Records = WireBundle::ReadBundles(Fixture->Graph);
-					bool	   bThree = false;
+					bool bThree = false;
 					for (const auto& R : Records)
 					{
 						if (R.Wires.Num() == 2 && R.Wires[0].Reroutes.Num() == 3 && R.Wires[1].Reroutes.Num() == 3)

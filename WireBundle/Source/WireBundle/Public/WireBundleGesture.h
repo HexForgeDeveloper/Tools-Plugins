@@ -12,7 +12,7 @@ namespace WireBundle
 {
 	struct FWireSnapshot
 	{
-		FLink			  Link;
+		FLink Link;
 		TArray<FVector2D> Points;
 		FRouteEndpointGeometry SourceEndpoint, TargetEndpoint;
 	};

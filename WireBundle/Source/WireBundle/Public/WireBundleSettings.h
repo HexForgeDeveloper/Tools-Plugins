@@ -153,7 +153,7 @@ public:
 	UPROPERTY(EditAnywhere, Config, Category = "Editors")
 	bool bEnableBlueprint = true;
 	UPROPERTY(EditAnywhere, Config, Category = "Editors")
-	bool		  bEnableMaterial = true;
+	bool bEnableMaterial = true;
 	virtual FName GetContainerName() const override { return TEXT("Editor"); }
 	virtual FName GetCategoryName() const override { return TEXT("Plugins"); }
 	virtual FName GetSectionName() const override { return TEXT("WireBundle"); }
@@ -162,12 +162,12 @@ public:
 /** A value snapshot; changes to preferences apply on the next command or gesture. */
 struct WIREBUNDLE_API FWireBundleResolvedSettings
 {
-	FWireBundleMovementSettings	  Movement;
-	FWireBundleGestureSettings	  Gesture;
+	FWireBundleMovementSettings Movement;
+	FWireBundleGestureSettings Gesture;
 	FWireBundleAppearanceSettings Appearance;
-	bool						  bEnableBlueprint = true;
-	bool						  bEnableMaterial = true;
-	void						  Sanitize();
+	bool bEnableBlueprint = true;
+	bool bEnableMaterial = true;
+	void Sanitize();
 };
 
 WIREBUNDLE_API FWireBundleResolvedSettings ResolveWireBundleSettings();

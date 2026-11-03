@@ -37,47 +37,43 @@ bool UCppTemplateGeneratorSettings::IsSupportedTemplateClass(const UClass* Templ
 	return true;
 }
 
-namespace
+bool UCppTemplateGeneratorSettings::SanitizeTemplateClassesInternal(const bool bPreserveNullEntries)
 {
-	bool SanitizeTemplateClassesArray(TArray<TSubclassOf<UObject>>& TemplateClasses, const bool bPreserveNullEntries)
+	TArray<TSubclassOf<UObject>> SanitizedTemplateClasses;
+	SanitizedTemplateClasses.Reserve(TemplateClasses.Num());
+
+	for (const TSubclassOf<UObject>& TemplateClass : TemplateClasses)
 	{
-		TArray<TSubclassOf<UObject>> SanitizedTemplateClasses;
-		SanitizedTemplateClasses.Reserve(TemplateClasses.Num());
-
-		for (const TSubclassOf<UObject>& TemplateClass : TemplateClasses)
+		UClass* const Class = TemplateClass.Get();
+		if (bPreserveNullEntries && Class == nullptr)
 		{
-			UClass* const Class = TemplateClass.Get();
-			if (bPreserveNullEntries && Class == nullptr)
-			{
-				SanitizedTemplateClasses.Add(nullptr);
-				continue;
-			}
-
-			if (!UCppTemplateGeneratorSettings::IsSupportedTemplateClass(Class))
-			{
-				continue;
-			}
-
-			SanitizedTemplateClasses.AddUnique(Class);
+			SanitizedTemplateClasses.Add(nullptr);
+			continue;
 		}
 
-		const bool bWasModified = SanitizedTemplateClasses != TemplateClasses;
-		if (bWasModified)
+		if (!UCppTemplateGeneratorSettings::IsSupportedTemplateClass(Class))
 		{
-			TemplateClasses = MoveTemp(SanitizedTemplateClasses);
+			continue;
 		}
 
-		return bWasModified;
+		SanitizedTemplateClasses.AddUnique(Class);
 	}
-} // namespace
+
+	const bool bWasModified = SanitizedTemplateClasses != TemplateClasses;
+	if (bWasModified)
+	{
+		TemplateClasses = MoveTemp(SanitizedTemplateClasses);
+	}
+
+	return bWasModified;
+}
 
 /**
  * @brief Initializes the default template class list.
  */
 UCppTemplateGeneratorSettings::UCppTemplateGeneratorSettings()
 {
-	TemplateClasses = 
-	{
+	TemplateClasses = {
 		AActor::StaticClass(),
 		UActorComponent::StaticClass(),
 		APawn::StaticClass(),
@@ -89,7 +85,7 @@ UCppTemplateGeneratorSettings::UCppTemplateGeneratorSettings()
 
 bool UCppTemplateGeneratorSettings::SanitizeTemplateClasses()
 {
-	return SanitizeTemplateClassesArray(TemplateClasses, false);
+	return SanitizeTemplateClassesInternal(false);
 }
 
 void UCppTemplateGeneratorSettings::PostInitProperties()
@@ -107,7 +103,7 @@ void UCppTemplateGeneratorSettings::PostEditChangeProperty(FPropertyChangedEvent
 	const FName PropertyName = PropertyChangedEvent.GetPropertyName();
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UCppTemplateGeneratorSettings, TemplateClasses))
 	{
-		if (SanitizeTemplateClassesArray(TemplateClasses, true))
+		if (SanitizeTemplateClassesInternal(true))
 		{
 			SaveConfig();
 		}

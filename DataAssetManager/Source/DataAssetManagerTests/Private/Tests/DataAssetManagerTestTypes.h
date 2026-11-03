@@ -18,10 +18,8 @@ namespace DataAssetManagerFlags
 {
 	/** @brief Default flag set for editor automation tests in this module. */
 	constexpr EAutomationTestFlags Flags =
-		EAutomationTestFlags::EditorContext |
-		EAutomationTestFlags::ProductFilter |
-		EAutomationTestFlags::CriticalPriority;
-}
+		EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::CriticalPriority;
+} // namespace DataAssetManagerFlags
 
 /**
  * @brief Minimal data asset type used by Data Asset Manager automation tests.
@@ -128,11 +126,6 @@ public:
 	bool IsSelectedAssetValid_Test(const FString& CustomMessage) const
 	{
 		return Super::IsSelectedAssetValid(CustomMessage);
-	}
-
-	void SelectAsset_Test(TSharedPtr<FAssetData> Asset)
-	{
-		Super::OnAssetSelected(Asset, ESelectInfo::Direct);
 	}
 };
 

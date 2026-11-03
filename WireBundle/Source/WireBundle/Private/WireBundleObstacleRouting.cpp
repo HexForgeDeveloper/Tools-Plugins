@@ -28,14 +28,14 @@ namespace WireBundle
 	static bool TryExtraBends(FBundleRoutePlan& Plan, const TArray<FRouteWireGeometry>& Wires,
 		const TArray<FRouteObstacle>& Obstacles, const FWireBundleResolvedSettings& Config,
 		TFunctionRef<FVector2D(const FVector2D&, const FVector2D&)> Tangent,
-		TFunctionRef<bool(const FBundleRoutePlan&)>					ClearPlan)
+		TFunctionRef<bool(const FBundleRoutePlan&)> ClearPlan)
 	{
 		if (!Config.Movement.bAllowExtraBends || Plan.Lanes.IsEmpty())
 		{
 			return false;
 		}
 		TArray<FRouteWireGeometry> Sorted;
-		double					   MinX = -DBL_MAX, MaxX = DBL_MAX;
+		double MinX = -DBL_MAX, MaxX = DBL_MAX;
 		for (const auto& Lane : Plan.Lanes)
 		{
 			const auto W = Wires.FindByPredicate([&](const FRouteWireGeometry& Wire) { return Wire.Link.Output == Lane.Link.Output && Wire.Link.Input == Lane.Link.Input && Wire.Link.SourceY == Lane.Link.SourceY; });
@@ -51,11 +51,11 @@ namespace WireBundle
 		{
 			return false;
 		}
-		const double   Clearance = Config.Movement.ObstacleClearance + 21;
-		const double   Half = (Sorted.Num() - 1) * Config.Movement.WireSpacing * 0.5;
-		const double   Max = Config.Movement.MaxRouteDetour;
-		const double   Grid = Config.Movement.GridSize;
-		auto		   Snap = [&](double V, bool Up) { return Config.Movement.bSnapToGrid ? (Up ? FMath::CeilToDouble(V / Grid) : FMath::FloorToDouble(V / Grid)) * Grid : V; };
+		const double Clearance = Config.Movement.ObstacleClearance + 21;
+		const double Half = (Sorted.Num() - 1) * Config.Movement.WireSpacing * 0.5;
+		const double Max = Config.Movement.MaxRouteDetour;
+		const double Grid = Config.Movement.GridSize;
+		auto Snap = [&](double V, bool Up) { return Config.Movement.bSnapToGrid ? (Up ? FMath::CeilToDouble(V / Grid) : FMath::FloorToDouble(V / Grid)) * Grid : V; };
 		TArray<double> Mandatory, Xs, Ys = { Plan.Center.Y };
 		for (const auto& P : Plan.Lanes[0].Reroutes)
 		{
@@ -118,7 +118,7 @@ namespace WireBundle
 		{
 			Ys.SetNum(24);
 		}
-		const int32			   NY = Ys.Num();
+		const int32 NY = Ys.Num();
 		TArray<TArray<FBox2D>> Boxes;
 		Boxes.SetNum(Sorted.Num());
 		for (int32 L = 0; L < Sorted.Num(); ++L)
@@ -133,7 +133,7 @@ namespace WireBundle
 			}
 		}
 		int32 Attempts = 0;
-		auto  SegmentClear = [&](int32 L, const FVector2D& A, const FVector2D& B, bool StartReversed = false, bool EndReversed = false) {
+		auto SegmentClear = [&](int32 L, const FVector2D& A, const FVector2D& B, bool StartReversed = false, bool EndReversed = false) {
 			if (A.X > B.X)
 			{
 				return false;
@@ -198,8 +198,8 @@ namespace WireBundle
 						continue;
 					}
 					const FVector2D A(Xs[X - 1], Ys[PY]), B(Xs[X], Ys[Y]);
-					const double	Cost = Costs[Prev] + (B - A).Size() + (PY == Y ? 0 : 16);
-					const int32		Index = X * NY + Y;
+					const double Cost = Costs[Prev] + (B - A).Size() + (PY == Y ? 0 : 16);
+					const int32 Index = X * NY + Y;
 					if (Cost < Costs[Index] && EdgeClear(A, B))
 					{
 						Costs[Index] = Cost;
@@ -212,11 +212,11 @@ namespace WireBundle
 				}
 			}
 		}
-		int32  Best = INDEX_NONE;
+		int32 Best = INDEX_NONE;
 		double BestCost = DBL_MAX;
 		for (int32 Y = 0; Y < NY; ++Y)
 		{
-			const int32	 I = (Xs.Num() - 1) * NY + Y;
+			const int32 I = (Xs.Num() - 1) * NY + Y;
 			const double Cost = Costs[I] + FMath::Abs(Ys[Y] - Plan.Center.Y);
 			if (Cost < BestCost && EndpointClear(FVector2D(Xs.Last(), Ys[Y]), false))
 			{
@@ -284,7 +284,7 @@ namespace WireBundle
 	}
 	FBundleRoutePlan BuildObstacleRoutePlan(const TArray<FRouteWireGeometry>& Wires,
 		const TArray<FRouteObstacle>& Obstacles, const FVector2D& Center,
-		const FWireBundleResolvedSettings&							Settings,
+		const FWireBundleResolvedSettings& Settings,
 		TFunctionRef<FVector2D(const FVector2D&, const FVector2D&)> Tangent)
 	{
 		auto Config = Settings;
@@ -306,8 +306,8 @@ namespace WireBundle
 			// Reflect into the forward search frame. Its origin is already snapped,
 			// so mandatory columns and the global grid survive the round trip.
 			const double Origin = Base.Center.X;
-			auto		 Mirrored = Wires;
-			auto		 MirrorEndpoint = [&](FRouteEndpointGeometry& E) {
+			auto Mirrored = Wires;
+			auto MirrorEndpoint = [&](FRouteEndpointGeometry& E) {
 				E.CenterX = Origin - E.CenterX;
 				E.IncomingX = E.IncomingCount * Origin - E.IncomingX;
 				E.OutgoingX = E.OutgoingCount * Origin - E.OutgoingX;
@@ -392,7 +392,7 @@ namespace WireBundle
 			return Finish(Base);
 		}
 		const double Clearance = Config.Movement.ObstacleClearance + 21;
-		auto		 Clear = [&](const FBundleRoutePlan& Plan) {
+		auto Clear = [&](const FBundleRoutePlan& Plan) {
 			for (const auto& Lane : Plan.Lanes)
 			{
 				const auto* Wire = Wires.FindByPredicate([&](const FRouteWireGeometry& W) { return W.Link.Output == Lane.Link.Output && W.Link.Input == Lane.Link.Input && W.Link.SourceY == Lane.Link.SourceY; });
@@ -433,8 +433,8 @@ namespace WireBundle
 		{
 			return Finish(Base);
 		}
-		const double   Max = Config.Movement.MaxRouteDetour;
-		const double   Half = (Wires.Num() - 1) * Config.Movement.WireSpacing * 0.5;
+		const double Max = Config.Movement.MaxRouteDetour;
+		const double Half = (Wires.Num() - 1) * Config.Movement.WireSpacing * 0.5;
 		TArray<double> Offsets;
 		for (const auto& O : Obstacles)
 		{
@@ -455,7 +455,7 @@ namespace WireBundle
 			{
 				continue;
 			}
-			auto   Candidate = Base;
+			auto Candidate = Base;
 			double Delta = Offset;
 			if (Config.Movement.bSnapToGrid)
 			{

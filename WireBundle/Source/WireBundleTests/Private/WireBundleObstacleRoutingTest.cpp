@@ -9,7 +9,7 @@ bool FWireBundleObstacleRoutingTest::RunTest(const FString&)
 	S.Movement.bAvoidNodes = true;
 	S.Movement.BundleWidth = 240;
 	S.Movement.WireSpacing = 20;
-	const FGuid							   Blocker = FGuid::NewGuid(), Source = FGuid::NewGuid(), Target = FGuid::NewGuid();
+	const FGuid Blocker = FGuid::NewGuid(), Source = FGuid::NewGuid(), Target = FGuid::NewGuid();
 	TArray<WireBundle::FRouteWireGeometry> Wires;
 	for (int32 I = 0; I < 2; ++I)
 	{
@@ -22,9 +22,9 @@ bool FWireBundleObstacleRoutingTest::RunTest(const FString&)
 		Wires.Add(W);
 	}
 	const TArray<WireBundle::FRouteObstacle> Walls = { { Blocker, FBox2D(FVector2D(340, -60), FVector2D(460, 60)) } };
-	const auto								 Tangent = [](const FVector2D& A, const FVector2D& B) { return FVector2D(FMath::Abs(B.X - A.X), 0); };
-	auto									 Plan = [&](const TArray<WireBundle::FRouteObstacle>& O) { return WireBundle::BuildObstacleRoutePlan(Wires, O, FVector2D(400, 0), S, Tangent); };
-	const auto								 Clear = Plan({});
+	const auto Tangent = [](const FVector2D& A, const FVector2D& B) { return FVector2D(FMath::Abs(B.X - A.X), 0); };
+	auto Plan = [&](const TArray<WireBundle::FRouteObstacle>& O) { return WireBundle::BuildObstacleRoutePlan(Wires, O, FVector2D(400, 0), S, Tangent); };
+	const auto Clear = Plan({});
 	TestFalse(TEXT("Unobstructed layout is unchanged"), Clear.bBlocked || Clear.bAvoidedObstacles);
 	for (int32 Columns : { 1, 2, 3, 5 })
 	{
@@ -102,7 +102,7 @@ bool FWireBundleMultiBendRoutingTest::RunTest(const FString&)
 		{ FGuid::NewGuid(), FBox2D(FVector2D(640, -50), FVector2D(760, 800)) }
 	};
 	const auto Tangent = [](const FVector2D& A, const FVector2D& B) { return FVector2D(FMath::Abs(B.X - A.X), 0); };
-	auto	   Plan = [&] { return WireBundle::BuildObstacleRoutePlan(Wires, Walls, FVector2D(500, 0), S, Tangent); };
+	auto Plan = [&] { return WireBundle::BuildObstacleRoutePlan(Wires, Walls, FVector2D(500, 0), S, Tangent); };
 	S.Movement.bAllowExtraBends = false;
 	TestTrue(TEXT("No common horizontal corridor clears staggered walls"), Plan().bBlocked);
 	S.Movement.bAllowExtraBends = true;
@@ -197,7 +197,7 @@ bool FWireBundleBackwardRoutingTest::RunTest(const FString&)
 	};
 	// Asymmetric native-style tangents catch an incorrect reflection of Y.
 	const auto Tangent = [](const FVector2D& A, const FVector2D& B) { return FVector2D(FMath::Abs(B.X - A.X), 0.15 * FMath::Min(FMath::Abs(B.Y - A.Y), 100.0)); };
-	auto	   Plan = [&](const TArray<WireBundle::FRouteObstacle>& O) { return WireBundle::BuildObstacleRoutePlan(Wires, O, FVector2D(500, 0), S, Tangent); };
+	auto Plan = [&](const TArray<WireBundle::FRouteObstacle>& O) { return WireBundle::BuildObstacleRoutePlan(Wires, O, FVector2D(500, 0), S, Tangent); };
 	for (bool Knots : { false, true })
 	{
 		for (auto& W : Wires)
