@@ -9,20 +9,20 @@ namespace WireBundle
 {
 	struct FRouteObstacle
 	{
-		FGuid  Node;
+		FGuid Node;
 		FBox2D Bounds;
-		bool   operator==(const FRouteObstacle& O) const
+		bool operator==(const FRouteObstacle& O) const
 		{
 			return Node == O.Node && Bounds.Min == O.Bounds.Min && Bounds.Max == O.Bounds.Max && Bounds.bIsValid == O.Bounds.bIsValid;
 		}
 	};
 	struct FRouteWireGeometry
 	{
-		FLink				   Link;
-		FVector2D			   Source, Target;
-		FGuid				   SourceNode, TargetNode;
+		FLink Link;
+		FVector2D Source, Target;
+		FGuid SourceNode, TargetNode;
 		FRouteEndpointGeometry SourceEndpoint, TargetEndpoint;
-		bool				   operator==(const FRouteWireGeometry& O) const
+		bool operator==(const FRouteWireGeometry& O) const
 		{
 			return Link.Output == O.Link.Output && Link.Input == O.Link.Input && Link.SourceY == O.Link.SourceY
 				&& Source == O.Source && Target == O.Target && SourceNode == O.SourceNode && TargetNode == O.TargetNode
@@ -32,7 +32,7 @@ namespace WireBundle
 	// Geometry and spline math are supplied by the adapter; planning never edits a graph.
 	WIREBUNDLE_API FBundleRoutePlan BuildObstacleRoutePlan(const TArray<FRouteWireGeometry>& Wires,
 		const TArray<FRouteObstacle>& Obstacles, const FVector2D& Center,
-		const FWireBundleResolvedSettings&							Settings,
+		const FWireBundleResolvedSettings& Settings,
 		TFunctionRef<FVector2D(const FVector2D&, const FVector2D&)> Tangent);
 	WIREBUNDLE_API FBundleRoutePlan BuildGraphRoutePlan(const TSharedRef<SGraphPanel>& Panel,
 		const TArray<FLink>& Links, const FVector2D& Center, const FWireBundleResolvedSettings& Settings);

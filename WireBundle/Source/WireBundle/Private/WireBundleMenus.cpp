@@ -15,7 +15,7 @@ namespace WireBundle
 	static TSharedRef<FExtender> ExtendMenu(const TSharedRef<FUICommandList> Commands,
 		const UEdGraph* Graph, const UEdGraphNode* Node, const UEdGraphPin* Pin, bool bReadOnly)
 	{
-		TSharedRef<FExtender>		   Extender = MakeShared<FExtender>();
+		TSharedRef<FExtender> Extender = MakeShared<FExtender>();
 		const TSharedPtr<SGraphEditor> Editor = SGraphEditor::FindGraphEditorForGraph(Graph);
 		if (bReadOnly || !Node || Pin || !Editor || !Editor->GetGraphPanel())
 		{
@@ -27,10 +27,10 @@ namespace WireBundle
 			return Extender;
 		}
 		const TWeakPtr<SGraphPanel> WeakPanel = Panel;
-		FWireBundleRecord			Record;
-		const bool					bKnown = FindBundleForNode(const_cast<UEdGraph*>(Graph), Node, Record);
-		const FGuid					Id = Record.Id;
-		const bool					bValid = bKnown && ValidateBundle(const_cast<UEdGraph*>(Graph), Record) == EBundleHealth::Valid;
+		FWireBundleRecord Record;
+		const bool bKnown = FindBundleForNode(const_cast<UEdGraph*>(Graph), Node, Record);
+		const FGuid Id = Record.Id;
+		const bool bValid = bKnown && ValidateBundle(const_cast<UEdGraph*>(Graph), Record) == EBundleHealth::Valid;
 		// Each native schema uses its own node action section.
 		for (FName Hook : { FName("EdGraphSchemaNodeActions"), FName("MaterialSchemaNodeActions") })
 		{
@@ -58,7 +58,7 @@ namespace WireBundle
 								if (auto P = WeakPanel.Pin())
 								{
 									FVector2D Center = FVector2D::ZeroVector;
-									int32	  Count = 0;
+									int32 Count = 0;
 									for (UObject* Object : P->SelectionManager.GetSelectedNodes())
 									{
 										if (auto N = Cast<UEdGraphNode>(Object))

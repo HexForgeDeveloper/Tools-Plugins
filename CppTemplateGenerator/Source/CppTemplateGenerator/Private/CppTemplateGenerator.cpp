@@ -20,7 +20,7 @@ DEFINE_LOG_CATEGORY_STATIC(CppTemplateGeneratorLog, All, All);
 
 void FCppTemplateGeneratorModule::StartupModule()
 {
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this,&FCppTemplateGeneratorModule::RegisterMenus));
+	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FCppTemplateGeneratorModule::RegisterMenus));
 }
 
 void FCppTemplateGeneratorModule::ShutdownModule()
@@ -31,7 +31,7 @@ void FCppTemplateGeneratorModule::ShutdownModule()
 	{
 		ToolMenus->UnregisterOwner(this);
 	}
-}
+}	
 
 void FCppTemplateGeneratorModule::RegisterMenus()
 {
@@ -49,8 +49,7 @@ void FCppTemplateGeneratorModule::RegisterMenus()
 		"CreateCppTemplate",
 		LOCTEXT("CreateCppTemplateLabel", "New C++ Template..."),
 		LOCTEXT("CreateCppTemplateTooltip", "Create a C++ class from your predefined template"),
-		FNewToolMenuDelegate::CreateLambda([this](UToolMenu* InMenu)
-		{
+		FNewToolMenuDelegate::CreateLambda([this](UToolMenu* InMenu) {
 			FToolMenuOwnerScoped SubMenuOwnerScoped(this);
 			const UCppTemplateGeneratorSettings* const Settings = GetDefault<UCppTemplateGeneratorSettings>();
 			FToolMenuSection& SubSection = InMenu->AddSection("CppTemplateSection");
@@ -60,8 +59,7 @@ void FCppTemplateGeneratorModule::RegisterMenus()
 				LOCTEXT("OpenCppTemplateGeneratorSettingsLabel", "Template Settings..."),
 				LOCTEXT("OpenCppTemplateGeneratorSettingsTooltip", "Open the C++ Template Generator settings"),
 				FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Settings"),
-				FUIAction(FExecuteAction::CreateLambda([this]()
-				{
+				FUIAction(FExecuteAction::CreateLambda([this]() {
 					OpenPluginSettings();
 				})));
 

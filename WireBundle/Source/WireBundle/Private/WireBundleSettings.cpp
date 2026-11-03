@@ -63,7 +63,7 @@ void FWireBundleResolvedSettings::Sanitize()
 
 FWireBundleResolvedSettings ResolveWireBundleSettings()
 {
-	FWireBundleResolvedSettings		 Result;
+	FWireBundleResolvedSettings Result;
 	const UWireBundleEditorSettings* Settings = GetDefault<UWireBundleEditorSettings>();
 	Result.Movement = Settings->Movement;
 	Result.Gesture = Settings->Gesture;

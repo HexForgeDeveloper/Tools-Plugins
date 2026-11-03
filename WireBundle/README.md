@@ -169,4 +169,4 @@ Overlay appearance and usability at different zoom/DPI settings still benefit fr
 
 ## Task workflow
 
-In the canonical ToolsProject checkout, follow `Plugins/WireBundle/AGENTS.md`: implement the change, run regression tests, regenerate project files, then write the commit description. This source collection does not include the canonical workspace instructions.
+Follow [AGENTS.md](AGENTS.md): implement the change, add and run regression tests, regenerate ToolsProject project files, then write the commit description.
