@@ -2,7 +2,7 @@ name: Sync standalone plugins
 
 on:
   push:
-    branches: [main]
+    branches: ['5.5']
     paths:
       - 'CppTemplateGenerator/**'
       - 'TextureChannelPacker/**'
@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   sync:
+    if: github.ref == 'refs/heads/5.5'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:

@@ -29,7 +29,7 @@ or language server integration.
 From the root of a Git-tracked Unreal project:
 
 ```sh
-git submodule add https://github.com/HexForgeDeveloper/Tools-Plugins.git Plugins/ToolsPlugins
+git submodule add -b 5.5 https://github.com/HexForgeDeveloper/Tools-Plugins.git Plugins/ToolsPlugins
 git add .gitmodules Plugins/ToolsPlugins
 git commit -m "Add Tools Plugins submodule"
 ```
@@ -61,7 +61,7 @@ plugin version. From the parent project root:
 
 ```sh
 git -C Plugins/ToolsPlugins fetch origin
-git -C Plugins/ToolsPlugins checkout origin/main
+git -C Plugins/ToolsPlugins checkout origin/5.5
 git add Plugins/ToolsPlugins
 git commit -m "Update Tools Plugins"
 ```
@@ -116,7 +116,7 @@ some create temporary assets.
 
 ## Standalone plugin synchronization
 
-Changes pushed to `main` under `CppTemplateGenerator/` or `TextureChannelPacker/`
+Changes pushed to `5.5` under `CppTemplateGenerator/` or `TextureChannelPacker/`
 are exported by the **Sync standalone plugins** workflow to the matching
 repository's `5.5` branch:
 
@@ -124,7 +124,7 @@ repository's `5.5` branch:
 - [TextureChannelPacker](https://github.com/HexForgeDeveloper/TextureChannelPacker/tree/5.5)
 
 Only the affected plugin is selected on a normal push. A destination commit is
-created only when its exported payload differs. Manual dispatch can select one
+created only when its exported payload differs. Manual dispatch on the `5.5` branch can select one
 plugin or both. Changes to the synchronization implementation recheck both
 repositories, while unchanged payloads still produce no commits.
 
@@ -143,8 +143,8 @@ a dedicated SSH private deploy key with write access to its destination:
 
 The upstream Tools-Project workflow pushes using a deploy key, so those updates
 can trigger this downstream workflow. No workflow writes changes back upstream.
-The current mapping is `Tools-Plugins/main` to the standalone `5.5` branches;
-new engine versions need their own explicit mapping and validation.
+The current chain is `Tools-Project/5.5` -> `Tools-Plugins/5.5` -> the standalone `5.5` branches;
+new engine versions need their own explicit mapping and validation. Pushes to `main` do not run this export; manual dispatches selected on other branches are skipped.
 
 Run the synchronization tooling tests locally with:
 
