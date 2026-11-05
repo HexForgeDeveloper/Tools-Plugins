@@ -113,3 +113,41 @@ some create temporary assets.
 ## License
 
 [MIT](LICENSE). Existing copyright notices are preserved.
+
+## Standalone plugin synchronization
+
+Changes pushed to `main` under `CppTemplateGenerator/` or `TextureChannelPacker/`
+are exported by the **Sync standalone plugins** workflow to the matching
+repository's `5.5` branch:
+
+- [CppTemplateGenerator](https://github.com/HexForgeDeveloper/CppTemplateGenerator/tree/5.5)
+- [TextureChannelPacker](https://github.com/HexForgeDeveloper/TextureChannelPacker/tree/5.5)
+
+Only the affected plugin is selected on a normal push. A destination commit is
+created only when its exported payload differs. Manual dispatch can select one
+plugin or both. Changes to the synchronization implementation recheck both
+repositories, while unchanged payloads still produce no commits.
+
+The export manages tracked `Source`, `Config`, `Content`, `Resources` and `Shaders`
+directories, the plugin descriptor and `LICENSE`. Standalone README files, test
+instructions, repository workflows and Git settings are maintained separately.
+Generated files and local working materials are excluded. Stale payload files are
+removed only inside the managed directories. The destination `main` branches and
+other engine-version branches are not modified.
+
+The workflow requires these Actions secrets in **Tools-Plugins**, each containing
+a dedicated SSH private deploy key with write access to its destination:
+
+- `CPP_TEMPLATE_GENERATOR_DEPLOY_KEY`
+- `TEXTURE_CHANNEL_PACKER_DEPLOY_KEY`
+
+The upstream Tools-Project workflow pushes using a deploy key, so those updates
+can trigger this downstream workflow. No workflow writes changes back upstream.
+The current mapping is `Tools-Plugins/main` to the standalone `5.5` branches;
+new engine versions need their own explicit mapping and validation.
+
+Run the synchronization tooling tests locally with:
+
+```sh
+python -m unittest discover -s DevOps/Tests -p 'test_*.py' -v
+```

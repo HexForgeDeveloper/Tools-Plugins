@@ -20,3 +20,7 @@ Build/
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Python tooling cache
+__pycache__/
+*.py[cod]

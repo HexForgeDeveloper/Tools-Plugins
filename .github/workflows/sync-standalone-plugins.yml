@@ -1,0 +1,93 @@
+name: Sync standalone plugins
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'CppTemplateGenerator/**'
+      - 'TextureChannelPacker/**'
+      - '.github/workflows/sync-standalone-plugins.yml'
+      - 'DevOps/Sync-StandalonePlugin.py'
+      - 'DevOps/Tests/test_sync_standalone_plugin.py'
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: Plugin to synchronize
+        type: choice
+        default: all
+        options: [all, CppTemplateGenerator, TextureChannelPacker]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-standalone-plugins-5.5
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - plugin: CppTemplateGenerator
+            secret: CPP_TEMPLATE_GENERATOR_DEPLOY_KEY
+          - plugin: TextureChannelPacker
+            secret: TEXTURE_CHANNEL_PACKER_DEPLOY_KEY
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v6
+        with:
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Test synchronization rules
+        run: python3 -m unittest discover -s source/DevOps/Tests -p 'test_*.py' -v
+      - name: Select affected plugin
+        id: changes
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          REQUESTED_PLUGIN: ${{ inputs.plugin || 'all' }}
+        run: |
+          python3 source/DevOps/Sync-StandalonePlugin.py changed \
+            --source-root source --plugin "$PLUGIN" --event "$EVENT_NAME" \
+            --before "$BEFORE_SHA" --after "$AFTER_SHA" \
+            --requested-plugin "$REQUESTED_PLUGIN" >> "$GITHUB_OUTPUT"
+      - name: Checkout standalone version branch
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: HexForgeDeveloper/${{ matrix.plugin }}
+          ref: '5.5'
+          ssh-key: ${{ secrets[matrix.secret] }}
+          path: destination
+      - name: Synchronize tracked plugin payload
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+        run: |
+          python3 source/DevOps/Sync-StandalonePlugin.py sync \
+            --source-root source --destination-root destination --plugin "$PLUGIN"
+      - name: Commit only changed payloads
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: destination
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git add -A -- .
+          if git diff --cached --quiet; then
+            echo "$PLUGIN is already synchronized; no commit is needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync $PLUGIN from Tools-Plugins ${SOURCE_SHA}" \
+            -m "Source: https://github.com/HexForgeDeveloper/Tools-Plugins/commit/${SOURCE_SHA}"
+          git push origin HEAD:5.5
