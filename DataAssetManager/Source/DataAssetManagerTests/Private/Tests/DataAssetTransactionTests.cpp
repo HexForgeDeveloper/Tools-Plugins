@@ -108,4 +108,46 @@ bool FDataAssetComplexPropertyTransactionTest::RunTest(const FString& Parameters
 	return true;
 }
 
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(
+	FDataAssetIdentityTransactionTest,
+	"DataAssetManager.Integration.AssetIdentity",
+	DataAssetManagerFlags::Flags)
+
+/** @brief Enumerates standard Unreal asset rename and move operations. */
+void FDataAssetIdentityTransactionTest::GetTests(TArray<FString>& Names, TArray<FString>& Commands) const
+{
+	Names.Add(TEXT("Rename")); Commands.Add(TEXT("Rename"));
+	Names.Add(TEXT("Move")); Commands.Add(TEXT("Move"));
+}
+
+/** @brief Verifies standard Asset Tools operations preserve the object and update its registry identity. */
+bool FDataAssetIdentityTransactionTest::RunTest(const FString& Parameters)
+{
+	using namespace DataAssetManagerTests;
+	FScopedTestDataAsset Fixture(MakeUniqueAssetName(TEXT("Identity")));
+	UObject* Asset = Fixture.GetAsset();
+	if (!Asset || !GEditor) { AddError(TEXT("Editor fixture unavailable")); return false; }
+	Asset->SetFlags(RF_Transactional);
+	const FString Before = Asset->GetPathName();
+	bool Changed = false;
+	if (Parameters == TEXT("Rename")) {
+		Changed = FDataAssetManagerAssetService::RenameAsset(Fixture.MakeSharedAssetData(), MakeUniqueAssetName(TEXT("Renamed")));
+	} else {
+		Changed = FDataAssetManagerAssetService::MoveAssets({Fixture.MakeSharedAssetData()}, TestMoveRootPath) == 1;
+	}
+	ON_SCOPE_EXIT { Fixture.RefreshAssetData(); DeleteTestRootAssets(); };
+	if (!TestTrue(TEXT("Identity operation succeeds"), Changed)) { return false; }
+	const FString After = Asset->GetPathName();
+	TestNotEqual(TEXT("Operation changes the object path"), After, Before);
+	const FAssetData RegisteredAsset = GetAssetDataForObject(Asset);
+	TestTrue(TEXT("Destination identity is registered"), RegisteredAsset.IsValid());
+	TestEqual(TEXT("Registry points to the same asset"), RegisteredAsset.GetAsset(), Asset);
+	if (Parameters == TEXT("Move")) {
+		TestEqual(TEXT("Destination directory is correct"), RegisteredAsset.PackagePath, FName(*TestMoveRootPath));
+	} else {
+		TestEqual(TEXT("Rename preserves directory"), RegisteredAsset.PackagePath, FName(*TestRootPath));
+	}
+	return true;
+}
+
 #endif
