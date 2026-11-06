@@ -1,6 +1,8 @@
 // Copyright (c) 2026 DimAlek. All Rights Reserved.
 
 #include "UI/SDataAssetManagerWidget.h"
+#include "Services/DataAssetRegistrySubscription.h"
+#include "UI/DataAssetDiffWindow.h"
 #include "UI/DataAssetReferenceInspectorWindow.h"
 #include "Widgets/SWidget.h"
 #include "Interfaces/IPluginManager.h"
@@ -336,13 +338,7 @@ void SDataAssetManagerWidget::SelectFirstAssetIfAvailable()
 
 SDataAssetManagerWidget::~SDataAssetManagerWidget()
 {
-	if (const FAssetRegistryModule* const AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>(DataAssetManager::ModuleName::AssetRegistry))
-	{
-		DataAssetManager::RemoveDelegateHandleSafe(ManagerDelegateHandles.AssetAddedDelegateHandle, AssetRegistryModule->Get().OnAssetAdded());
-		DataAssetManager::RemoveDelegateHandleSafe(ManagerDelegateHandles.AssetRemovedDelegateHandle, AssetRegistryModule->Get().OnAssetRemoved());
-		DataAssetManager::RemoveDelegateHandleSafe(ManagerDelegateHandles.AssetRenamedDelegateHandle, AssetRegistryModule->Get().OnAssetRenamed());
-		DataAssetManager::RemoveDelegateHandleSafe(ManagerDelegateHandles.FilesLoadedHandle, AssetRegistryModule->Get().OnFilesLoaded());
-	}
+	RegistrySubscription.Reset();
 }
 
 void SDataAssetManagerWidget::CreateNewDataAsset()
@@ -572,157 +568,11 @@ void SDataAssetManagerWidget::OpenDataAssetDiff()
 		return;
 	}
 
-	const FText LeftName = DiffResult->IsValidLeftAsset()
-		? FText::FromName(DiffResult->LeftAsset->AssetName)
-		: LOCTEXT("DataAssetDiffUnknownLeft", "Unknown");
-	const FText RightName = DiffResult->IsValidRightAsset()
-		? FText::FromName(DiffResult->RightAsset->AssetName)
-		: LOCTEXT("DataAssetDiffUnknownRight", "Unknown");
-	const FText LeftPath = DiffResult->IsValidLeftAsset()
-		? FText::FromName(DiffResult->LeftAsset->PackageName)
-		: FText::GetEmpty();
-	const FText RightPath = DiffResult->IsValidRightAsset()
-		? FText::FromName(DiffResult->RightAsset->PackageName)
-		: FText::GetEmpty();
-
-	TSharedPtr<SListView<TSharedPtr<FDataAssetDiffEntry>>> DiffListView;
-	TSharedRef<TWeakPtr<SListView<TSharedPtr<FDataAssetDiffEntry>>>> DiffListViewWeak =
-		MakeShared<TWeakPtr<SListView<TSharedPtr<FDataAssetDiffEntry>>>>();
-	TSharedRef<TFunction<void()>> RefreshDiff = MakeShared<TFunction<void()>>();
-	*RefreshDiff = [DiffResult, DiffListViewWeak]() {
-		FDataAssetDiffResult UpdatedDiff = FDataAssetManagerAssetService::DiffAssets(DiffResult->LeftAsset, DiffResult->RightAsset);
-		DiffResult->LeftAsset = UpdatedDiff.LeftAsset;
-		DiffResult->RightAsset = UpdatedDiff.RightAsset;
-		DiffResult->Entries = MoveTemp(UpdatedDiff.Entries);
-		DiffResult->bComparable = UpdatedDiff.bComparable;
-		DiffResult->ErrorText = UpdatedDiff.ErrorText;
-
-		if (const TSharedPtr<SListView<TSharedPtr<FDataAssetDiffEntry>>> PinnedListView = DiffListViewWeak->Pin())
-		{
-			PinnedListView->RequestListRefresh();
-		}
-	};
-
-	TSharedRef<SListView<TSharedPtr<FDataAssetDiffEntry>>> DiffListWidget =
-		SAssignNew(DiffListView, SListView<TSharedPtr<FDataAssetDiffEntry>>)
-			.ListItemsSource(&DiffResult->Entries)
-			.SelectionMode(ESelectionMode::Single)
-			.OnGenerateRow_Lambda([this, DiffResult, RefreshDiff](TSharedPtr<FDataAssetDiffEntry> Entry, const TSharedRef<STableViewBase>& OwnerTable) {
-				return GenerateDataAssetDiffRow(Entry, OwnerTable, DiffResult, RefreshDiff);
-			});
-	*DiffListViewWeak = DiffListView;
-
-	TSharedRef<SWindow> Window =
-		SNew(SWindow)
-			.Title(FText::Format(LOCTEXT("DataAssetDiffWindowTitle", "DataAsset Diff: {0} vs {1}"), LeftName, RightName))
-			.ClientSize(FVector2D(1080.0f, 680.0f))
-			.SupportsMaximize(true)
-			.SupportsMinimize(false);
-
-	Window->SetContent(
-		SNew(SVerticalBox)
-		+ SVerticalBox::Slot()
-			.AutoHeight()
-				[SNew(SBorder)
-						.BorderImage(FAppStyle::GetBrush("DetailsView.CategoryTop"))
-						.Padding(FMargin(8.0f, 6.0f))
-							[SNew(SHorizontalBox)
-								+ SHorizontalBox::Slot()
-									.FillWidth(0.5f)
-									.VAlign(VAlign_Center)
-										[SNew(SVerticalBox)
-											+ SVerticalBox::Slot()
-												.AutoHeight()
-													[SNew(STextBlock)
-															.Text(LeftName)
-															.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
-
-											+ SVerticalBox::Slot()
-												.AutoHeight()
-												.Padding(0.0f, 2.0f, 8.0f, 0.0f)
-													[SNew(STextBlock)
-															.Text(LeftPath)
-															.ColorAndOpacity(FSlateColor::UseSubduedForeground())]]
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									.VAlign(VAlign_Center)
-									.Padding(10.0f, 0.0f)
-										[SNew(STextBlock)
-												.Text_Lambda([DiffResult]() {
-													return FText::Format(
-														LOCTEXT("DataAssetDiffCount", "{0} difference(s)"),
-														FText::AsNumber(DiffResult->Entries.Num()));
-												})]
-
-								+ SHorizontalBox::Slot()
-									.FillWidth(0.5f)
-									.VAlign(VAlign_Center)
-										[SNew(SVerticalBox)
-											+ SVerticalBox::Slot()
-												.AutoHeight()
-													[SNew(STextBlock)
-															.Text(RightName)
-															.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))]
-
-											+ SVerticalBox::Slot()
-												.AutoHeight()
-												.Padding(8.0f, 2.0f, 0.0f, 0.0f)
-													[SNew(STextBlock)
-															.Text(RightPath)
-															.ColorAndOpacity(FSlateColor::UseSubduedForeground())]]]]
-
-		+ SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(8.0f, 8.0f, 8.0f, 4.0f)
-				[SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.22f)
-							[SNew(STextBlock)
-									.Text(LOCTEXT("DataAssetDiffPropertyColumn", "Property"))
-									.ColorAndOpacity(FSlateColor::UseSubduedForeground())]
-
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.34f)
-						.Padding(8.0f, 0.0f)
-							[SNew(STextBlock)
-									.Text(LOCTEXT("DataAssetDiffLeftColumn", "Left"))
-									.ColorAndOpacity(FSlateColor::UseSubduedForeground())]
-
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.34f)
-						.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-							[SNew(STextBlock)
-									.Text(LOCTEXT("DataAssetDiffRightColumn", "Right"))
-									.ColorAndOpacity(FSlateColor::UseSubduedForeground())]
-
-					+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-							[SNew(STextBlock)
-									.Text(LOCTEXT("DataAssetDiffCopyColumn", "Copy"))
-									.ColorAndOpacity(FSlateColor::UseSubduedForeground())]]
-
-		+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			.Padding(8.0f, 0.0f, 8.0f, 8.0f)
-				[SNew(SOverlay)
-					+ SOverlay::Slot()
-						[DiffListWidget]
-
-					+ SOverlay::Slot()
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-							[SNew(STextBlock)
-									.Text(LOCTEXT("DataAssetDiffNoDifferences", "No editable property differences found"))
-									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-									.Visibility_Lambda([DiffResult]() {
-										return DiffResult->HasDifferences()
-											? EVisibility::Collapsed
-											: EVisibility::HitTestInvisible;
-									})]]);
-
-	FSlateApplication::Get().AddWindow(Window);
+	const TWeakPtr<IDetailsView> WeakDetails = AssetManagerWidgets.DetailsView;
+	FSimpleDelegate OnChanged = FSimpleDelegate::CreateLambda([WeakDetails]() {
+		if (const TSharedPtr<IDetailsView> Details = WeakDetails.Pin()) { Details->ForceRefresh(); }
+	});
+	FSlateApplication::Get().AddWindow(FDataAssetDiffWindow::Create(DiffResult, OnChanged));
 }
 
 bool SDataAssetManagerWidget::CanOpenDataAssetDiff() const
@@ -854,24 +704,11 @@ EVisibility SDataAssetManagerWidget::GetVisibilitySearchBox() const
 
 void SDataAssetManagerWidget::SubscribeToAssetRegistryEvent()
 {
-	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(DataAssetManager::ModuleName::AssetRegistry);
-	const auto SubscribeDelegates = [this, &AssetRegistryModule]() {
-		ManagerDelegateHandles.AssetAddedDelegateHandle = AssetRegistryModule.Get().OnAssetAdded().AddRaw(this, &SDataAssetManagerWidget::OnAssetAdded);
-		ManagerDelegateHandles.AssetRemovedDelegateHandle = AssetRegistryModule.Get().OnAssetRemoved().AddRaw(this, &SDataAssetManagerWidget::OnAssetRemoved);
-		ManagerDelegateHandles.AssetRenamedDelegateHandle = AssetRegistryModule.Get().OnAssetRenamed().AddRaw(this, &SDataAssetManagerWidget::OnAssetRenamed);
-	};
-
-	if (AssetRegistryModule.Get().IsLoadingAssets())
-	{
-		ManagerDelegateHandles.FilesLoadedHandle = AssetRegistryModule.Get().OnFilesLoaded().AddLambda(
-			[this, SubscribeDelegates]() {
-				SubscribeDelegates();
-			});
-	}
-	else
-	{
-		SubscribeDelegates();
-	}
+	RegistrySubscription.Reset();
+	RegistrySubscription = MakeUnique<FDataAssetRegistrySubscription>(
+		[this](const FAssetData& Asset) { OnAssetAdded(Asset); },
+		[this](const FAssetData& Asset) { OnAssetRemoved(Asset); },
+		[this](const FAssetData& Asset, const FString& OldPath) { OnAssetRenamed(Asset, OldPath); });
 }
 
 void SDataAssetManagerWidget::InitializeTextFontInfo()
@@ -1124,87 +961,7 @@ FReply SDataAssetManagerWidget::OnItemClicked(TSharedPtr<FString> SourceItem)
 
 void SDataAssetManagerWidget::LoadDataAssets(const UDataAssetManagerSettings* PluginSettings)
 {
-	if (!IsValid(PluginSettings))
-	{
-		return;
-	}
-
-	TArray<FString> AssetDirectories{};
-	AssetDirectories.Reserve(PluginSettings->ScannedAssetDirectories.Num());
-
-	for (const FDirectoryPath& Dir : PluginSettings->ScannedAssetDirectories)
-	{
-		FString NormalizedPath = Dir.Path;
-		FPaths::NormalizeDirectoryName(NormalizedPath);
-		AssetDirectories.Add(NormalizedPath);
-	}
-
-	for (const TSharedRef<IPlugin>& Plugin : IPluginManager::Get().GetEnabledPlugins())
-	{
-		if (Plugin->GetLoadedFrom() == EPluginLoadedFrom::Project)
-		{
-			FString MountPoint = Plugin->GetMountedAssetPath();
-			if (!MountPoint.IsEmpty())
-			{
-				AssetDirectories.Add(MountPoint);
-				PluginFilterListItems.Add(MakeShared<FString>(MountPoint));
-			}
-		}
-	}
-
-	TArray<FTopLevelAssetPath> IgnoredClassPaths{};
-	IgnoredClassPaths.Reserve(PluginSettings->ExcludedScanAssetTypes.Num());
-	for (const TSubclassOf<UDataAsset>& IgnoredClass : PluginSettings->ExcludedScanAssetTypes)
-	{
-		if (IgnoredClass)
-		{
-			IgnoredClassPaths.Add(IgnoredClass->GetClassPathName());
-		}
-	}
-
-	const FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(DataAssetManager::ModuleName::AssetRegistry);
-	const IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-
-	TArray<FAssetData> AssetDataArray{};
-	const FTopLevelAssetPath DataAssetPath = UDataAsset::StaticClass()->GetClassPathName();
-	if (!AssetRegistry.GetAssetsByClass(DataAssetPath, AssetDataArray, true))
-	{
-		UE_LOG(SDataAssetManagerWidgetLog, Warning, TEXT("%s Failed to get assets by class"), ANSI_TO_TCHAR(__FUNCTION__));
-		return;
-	}
-
-	AssetManagerData.DataAssets.Reset(AssetDataArray.Num());
-	for (const FAssetData& AssetData : AssetDataArray)
-	{
-		if (IgnoredClassPaths.Contains(AssetData.AssetClassPath))
-		{
-			continue;
-		}
-
-		FString NormalizedAssetPath = AssetData.PackagePath.ToString();
-		FPaths::NormalizeDirectoryName(NormalizedAssetPath);
-
-		// Check if asset is in any of our directories
-		if (Algo::AnyOf(AssetDirectories,
-				[&NormalizedAssetPath](const FString& Directory) {
-					return NormalizedAssetPath.StartsWith(Directory);
-				}))
-		{
-			AssetManagerData.DataAssets.Add(MakeShared<FAssetData>(AssetData));
-		}
-	}
-
-	/**
-	 * Sorts the found DataAssets alphabetically by asset name.
-	 *
-	 * Uses lexicographical comparison (LexicalLess) which:
-	 * - Is case-sensitive
-	 * - More efficient than string comparison as it works directly with FName
-	 */
-	AssetManagerData.DataAssets.Sort(
-		[](const TSharedPtr<FAssetData>& A, const TSharedPtr<FAssetData>& B) {
-			return A->AssetName.LexicalLess(B->AssetName);
-		});
+	FDataAssetManagerAssetService::LoadDataAssets(PluginSettings, AssetManagerData.DataAssets, PluginFilterListItems);
 }
 
 void SDataAssetManagerWidget::UpdateFilteredAssetList()
@@ -1252,32 +1009,9 @@ FReply SDataAssetManagerWidget::HandleRowMouseButtonDown(const FGeometry& InGeom
 	return FReply::Handled();
 }
 
-void SDataAssetManagerWidget::InitializeAssetTypeComboBox(TArray<TSharedPtr<FAssetData>> AssetDataList)
+void SDataAssetManagerWidget::InitializeAssetTypeComboBox(const TArray<TSharedPtr<FAssetData>>& AssetDataList)
 {
-	if (!ComboBoxAssetListItems.IsEmpty())
-	{
-		ComboBoxAssetListItems.Reset();
-	}
-
-	TSet<FString> UniqueAssetNames;
-	for (const auto& AssetData : AssetDataList)
-	{
-		if (AssetData.IsValid())
-		{
-			const FString AssetName = AssetData->AssetClassPath.GetAssetName().ToString();
-			if (!UniqueAssetNames.Contains(AssetName))
-			{
-				/** Avoid duplicate class names in filter combo box */
-				UniqueAssetNames.Add(AssetName);
-				ComboBoxAssetListItems.Add(MakeShared<FString>(AssetName));
-			}
-		}
-	}
-
-	if (IConsoleManager::Get().FindConsoleVariable(TEXT("ShowDebugDataAssetManager"))->GetBool())
-	{
-		UE_LOG(SDataAssetManagerWidgetLog, Display, TEXT("%s FilteredDataAssets: %i"), ANSI_TO_TCHAR(__FUNCTION__), AssetManagerData.FilteredDataAssets.Num());
-	}
+	ComboBoxAssetListItems = FDataAssetListModel::BuildAssetTypeItems(AssetDataList);
 }
 
 void SDataAssetManagerWidget::FocusOnNewlyAddedAsset(const FAssetData& NewAssetData)
@@ -1824,125 +1558,7 @@ void SDataAssetManagerWidget::ShowAssetMetaData()
 
 
 
-TSharedRef<ITableRow> SDataAssetManagerWidget::GenerateDataAssetDiffRow(TSharedPtr<FDataAssetDiffEntry> Entry, const TSharedRef<STableViewBase>& OwnerTable, TSharedRef<FDataAssetDiffResult> DiffResult, TSharedRef<TFunction<void()>> RefreshDiff)
-{
-	const FText PropertyName = Entry.IsValid() ? Entry->DisplayName : FText::GetEmpty();
-	const FText PropertyDetails = Entry.IsValid()
-		? FText::FromString(Entry->Category.IsEmpty()
-				  ? Entry->PropertyName.ToString()
-				  : FString::Printf(TEXT("%s / %s"), *Entry->Category, *Entry->PropertyName.ToString()))
-		: FText::GetEmpty();
-	const FText LeftValue = Entry.IsValid() && !Entry->LeftValue.IsEmpty()
-		? FText::FromString(Entry->LeftValue)
-		: LOCTEXT("DataAssetDiffEmptyLeftValue", "<Empty>");
-	const FText RightValue = Entry.IsValid() && !Entry->RightValue.IsEmpty()
-		? FText::FromString(Entry->RightValue)
-		: LOCTEXT("DataAssetDiffEmptyRightValue", "<Empty>");
 
-	return SNew(STableRow<TSharedPtr<FDataAssetDiffEntry>>, OwnerTable)
-		.Padding(FMargin(2.0f, 4.0f))
-			[SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-					.FillWidth(0.22f)
-					.VAlign(VAlign_Top)
-					.Padding(2.0f, 0.0f, 8.0f, 0.0f)
-						[SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-									[SNew(STextBlock)
-											.Text(PropertyName)]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-									[SNew(STextBlock)
-											.Text(PropertyDetails)
-											.ColorAndOpacity(FSlateColor::UseSubduedForeground())]]
-
-				+ SHorizontalBox::Slot()
-					.FillWidth(0.34f)
-					.VAlign(VAlign_Top)
-					.Padding(8.0f, 0.0f)
-						[SNew(SBorder)
-								.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-								.Padding(FMargin(6.0f, 4.0f))
-									[SNew(STextBlock)
-											.Text(LeftValue)
-											.AutoWrapText(true)
-											.ToolTipText(LeftValue)]]
-
-				+ SHorizontalBox::Slot()
-					.FillWidth(0.34f)
-					.VAlign(VAlign_Top)
-					.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-						[SNew(SBorder)
-								.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-								.Padding(FMargin(6.0f, 4.0f))
-									[SNew(STextBlock)
-											.Text(RightValue)
-											.AutoWrapText(true)
-											.ToolTipText(RightValue)]]
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Top)
-					.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-						[SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-									[SNew(SButton)
-											.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-											.ContentPadding(FMargin(6.0f, 2.0f))
-											.ToolTipText(LOCTEXT("DataAssetDiffCopyLeftToRightTooltip", "Copy the left value to the right Data Asset"))
-											.OnClicked_Lambda([this, Entry, DiffResult, RefreshDiff]() {
-												CopyDataAssetDiffValue(Entry, DiffResult, true, RefreshDiff);
-												return FReply::Handled();
-											})
-												[SNew(STextBlock)
-														.Text(LOCTEXT("DataAssetDiffCopyLeftToRight", "L -> R"))]]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.Padding(0.0f, 2.0f, 0.0f, 0.0f)
-									[SNew(SButton)
-											.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-											.ContentPadding(FMargin(6.0f, 2.0f))
-											.ToolTipText(LOCTEXT("DataAssetDiffCopyRightToLeftTooltip", "Copy the right value to the left Data Asset"))
-											.OnClicked_Lambda([this, Entry, DiffResult, RefreshDiff]() {
-												CopyDataAssetDiffValue(Entry, DiffResult, false, RefreshDiff);
-												return FReply::Handled();
-											})
-												[SNew(STextBlock)
-														.Text(LOCTEXT("DataAssetDiffCopyRightToLeft", "L <- R"))]]]];
-}
-
-void SDataAssetManagerWidget::CopyDataAssetDiffValue(TSharedPtr<FDataAssetDiffEntry> Entry, TSharedRef<FDataAssetDiffResult> DiffResult, bool bLeftToRight, TSharedRef<TFunction<void()>> RefreshDiff)
-{
-	if (!Entry.IsValid())
-	{
-		return;
-	}
-
-	FText ErrorText;
-	const TSharedPtr<FAssetData>& SourceAsset = bLeftToRight ? DiffResult->LeftAsset : DiffResult->RightAsset;
-	const TSharedPtr<FAssetData>& TargetAsset = bLeftToRight ? DiffResult->RightAsset : DiffResult->LeftAsset;
-	if (!FDataAssetManagerAssetService::CopyDiffPropertyValue(SourceAsset, TargetAsset, Entry->PropertyName, &ErrorText))
-	{
-		FNotificationInfo Info(ErrorText.IsEmpty()
-				? LOCTEXT("DataAssetDiffCopyFailed", "Failed to copy the property value.")
-				: ErrorText);
-		Info.ExpireDuration = DataAssetManager::ExpireDuration;
-		FSlateNotificationManager::Get().AddNotification(Info);
-		return;
-	}
-
-	(*RefreshDiff)();
-
-	if (AssetManagerWidgets.IsValidDetailsView())
-	{
-		AssetManagerWidgets.DetailsView->ForceRefresh();
-	}
-}
 
 
 

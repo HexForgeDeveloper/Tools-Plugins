@@ -10,6 +10,7 @@
 #include "Types/DataAssetDiffTypes.h"
 #include "Types/DataAssetReferenceTypes.h"
 
+#include "Services/DataAssetRegistrySubscription.h"
 class UDataAssetManagerSettings;
 class UPackage;
 class SLayeredImage;
@@ -124,41 +125,6 @@ protected:
 	/** @brief Opens the current selection in the Property Matrix editor. */
 	void OpenSelectionInPropertyMatrix();
 
-
-
-
-
-
-
-
-
-	/**
-	 * @brief Generates a Data Asset diff row.
-	 * @param Entry Diff entry represented by the row.
-	 * @param OwnerTable Owning table view.
-	 * @param DiffResult Shared diff result that owns assets and row entries.
-	 * @param RefreshDiff Callback that recalculates and refreshes the diff list.
-	 * @return New row widget.
-	 */
-	TSharedRef<ITableRow> GenerateDataAssetDiffRow(
-		TSharedPtr<FDataAssetDiffEntry> Entry,
-		const TSharedRef<STableViewBase>& OwnerTable,
-		TSharedRef<FDataAssetDiffResult> DiffResult,
-		TSharedRef<TFunction<void()>> RefreshDiff);
-
-	/**
-	 * @brief Copies one diff value from one side to the other and refreshes the window.
-	 * @param Entry Diff entry whose property should be copied.
-	 * @param DiffResult Shared diff result containing left and right assets.
-	 * @param bLeftToRight true copies left value into right asset, false copies right value into left asset.
-	 * @param RefreshDiff Callback that recalculates the diff after copy.
-	 */
-	void CopyDataAssetDiffValue(
-		TSharedPtr<FDataAssetDiffEntry> Entry,
-		TSharedRef<FDataAssetDiffResult> DiffResult,
-		bool bLeftToRight,
-		TSharedRef<TFunction<void()>> RefreshDiff);
-
 	/**
 	 * @brief Checks whether the selected assets can be opened in Property Matrix.
 	 * @return true when at least one selected asset can be edited in Property Matrix.
@@ -255,7 +221,7 @@ protected:
 	FDetailsViewArgs CreateDetailsViewArgs() const;
 
 	/**
-	 * @brief Loads Data Assets using plugin scan settings.
+	 * @brief Replaces the asset list and plugin filter choices using the shared asset service.
 	 * @param PluginSettings Plugin settings that define scan paths and exclusions.
 	 */
 	void LoadDataAssets(const UDataAssetManagerSettings* PluginSettings);
@@ -291,10 +257,10 @@ protected:
 	TSharedRef<ITableRow> GenerateAssetListRow(TSharedPtr<FAssetData> Item, const TSharedRef<STableViewBase>& OwnerSTable);
 
 	/**
-	 * @brief Initializes the asset type combo box from loaded assets.
+	 * @brief Replaces type filter choices with unique class names produced by the list model.
 	 * @param AssetDataList Asset data used to populate type entries.
 	 */
-	void InitializeAssetTypeComboBox(TArray<TSharedPtr<FAssetData>> AssetDataList);
+	void InitializeAssetTypeComboBox(const TArray<TSharedPtr<FAssetData>>& AssetDataList);
 
 	/**
 	 * @brief Saves all dirty Data Asset packages.
@@ -488,7 +454,7 @@ private:
 	FSlateFontInfo TextFontInfo = {};
 
 	/** @brief Delegate handles registered with editor systems. */
-	FManagerDelegateHandles ManagerDelegateHandles;
+	TUniquePtr<FDataAssetRegistrySubscription> RegistrySubscription;
 
 	/** @brief Inline rename widget registry and rename state. */
 	FEditableWidgets EditableWidgets;
