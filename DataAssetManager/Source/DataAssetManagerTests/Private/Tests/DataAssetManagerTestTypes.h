@@ -6,8 +6,6 @@
 #include "Engine/DataAsset.h"
 #include "Misc/DataValidation.h"
 #include "Misc/AutomationTest.h"
-#include "UI/SDataAssetManagerWidget.h"
-#include "Widgets/Views/SHeaderRow.h"
 
 #include "DataAssetManagerTestTypes.generated.h"
 
@@ -34,11 +32,27 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	int32 TestProperty = 0;
 
+	/** @brief Narrow unsigned value used to test random range clamping. */
+	UPROPERTY(EditDefaultsOnly)
+	uint8 ByteValue = 0;
+
+	/** @brief Wide integer used to test values outside the int32 range. */
+	UPROPERTY(EditDefaultsOnly)
+	int64 WideValue = 0;
+
 	UPROPERTY(EditDefaultsOnly)
 	FLinearColor Color = FLinearColor::Red;
 
 	UPROPERTY(EditDefaultsOnly)
 	TArray<FLinearColor> Colors;
+
+	/** @brief Hard asset reference used to verify reflected copy transactions. */
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UDataAsset> AssetReference;
+
+	/** @brief Soft asset reference used to verify path preservation across undo and redo. */
+	UPROPERTY(EditDefaultsOnly)
+	TSoftObjectPtr<UDataAsset> SoftAssetReference;
 };
 
 /**
@@ -72,61 +86,3 @@ public:
 	}
 #endif
 };
-
-#if WITH_DEV_AUTOMATION_TESTS
-
-/**
- * @brief Test wrapper that exposes selected protected SDataAssetManagerWidget methods.
- */
-class STestDataAssetManagerWidget final : public SDataAssetManagerWidget
-{
-public:
-	/** @brief Base widget type used by this test wrapper. */
-	using Super = SDataAssetManagerWidget;
-
-	/**
-	 * @brief Constructs the test widget.
-	 * @param InArgs Slate construction arguments.
-	 */
-	void Construct(const FArguments& InArgs)
-	{
-		Super::Construct(InArgs);
-	}
-
-	/**
-	 * @brief Exposes AddColumnToHeader for automation tests.
-	 * @param InHeaderRow Header row that receives the column.
-	 * @param ColumnId Unique column identifier.
-	 * @param Label Display label for the column.
-	 * @param FillWidth Relative fill width for the column.
-	 */
-	void AddColumnToHeader_Test(
-		TSharedPtr<SHeaderRow> InHeaderRow,
-		const FName& ColumnId,
-		const FString& Label,
-		float FillWidth)
-	{
-		Super::AddColumnToHeader(InHeaderRow, ColumnId, Label, FillWidth);
-	}
-
-	/**
-	 * @brief Exposes CreateRevisionControlColumn for automation tests.
-	 * @return Column arguments for the revision-control column.
-	 */
-	SHeaderRow::FColumn::FArguments CreateRevisionControlColumn_Test()
-	{
-		return Super::CreateRevisionControlColumn();
-	}
-
-	/**
-	 * @brief Exposes IsSelectedAssetValid for automation tests.
-	 * @param CustomMessage Message to include in validation feedback.
-	 * @return true when the current selected asset state is valid.
-	 */
-	bool IsSelectedAssetValid_Test(const FString& CustomMessage) const
-	{
-		return Super::IsSelectedAssetValid(CustomMessage);
-	}
-};
-
-#endif
