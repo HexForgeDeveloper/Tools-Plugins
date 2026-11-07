@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """@brief Export tracked plugin payloads without overwriting standalone repository metadata."""
 import argparse
+import json
 from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 
-PLUGINS = ("CppTemplateGenerator", "TextureChannelPacker")
+PLUGINS = ("CppTemplateGenerator", "TextureChannelPacker", "DataAssetManager")
 DIRECTORIES = ("Source", "Config", "Content", "Resources", "Shaders")
 EXCLUDED_DIRS = {".git", ".agents", ".codex", ".claude", "Binaries", "Intermediate", "Saved", "DerivedDataCache"}
 EXCLUDED_FILES = {"AGENTS.md", "CLAUDE.md", "GEMINI.md", "ROADMAP.md", "RELEASE_PLAN.md", "REALEASE_PLAN.md", "COMMIT_MESSAGE.md"}
@@ -61,6 +62,17 @@ def safe_path(root, relative):
     return path
 
 
+def data_asset_manager_release_descriptor(path):
+    """@brief Keep the release module and remove its development-only test registration."""
+    descriptor = json.loads(path.read_text(encoding="utf-8-sig"))
+    modules = descriptor["Modules"]
+    if not any(module["Name"] == "DataAssetManager" for module in modules):
+        raise ValueError("DataAssetManager editor module is required")
+    descriptor["Modules"] = [module for module in modules if module["Name"] != "DataAssetManagerTests"]
+    descriptor["IsBetaVersion"] = False
+    return (json.dumps(descriptor, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
 def sync(root, destination, plugin):
     """@brief Mirror tracked payload files; preserve root README and standalone repository metadata.
 
@@ -82,6 +94,8 @@ def sync(root, destination, plugin):
             continue
         if relative.parts[0] not in DIRECTORIES and str(relative) not in (f"{plugin}.uplugin", "LICENSE"):
             continue
+        if plugin == "DataAssetManager" and relative.parts[:2] == ("Source", "DataAssetManagerTests"):
+            continue
         origin = safe_path(source, relative)
         if not origin.is_file():
             raise ValueError(f"Tracked source is not a regular file: {origin}")
@@ -89,6 +103,11 @@ def sync(root, destination, plugin):
         payload[relative] = origin
     if PurePosixPath(f"{plugin}.uplugin") not in payload or not any(p.parts[0] == "Source" for p in payload):
         raise ValueError("Plugin descriptor and tracked Source files are required")
+    descriptor_path = PurePosixPath(f"{plugin}.uplugin")
+    release_descriptor = (
+        data_asset_manager_release_descriptor(payload[descriptor_path])
+        if plugin == "DataAssetManager" else None
+    )
     stale = []
     for directory in DIRECTORIES:
         path = safe_path(destination, PurePosixPath(directory))
@@ -112,6 +131,11 @@ def sync(root, destination, plugin):
     copied = 0
     for relative, origin in payload.items():
         target = safe_path(destination, relative)
+        if relative == descriptor_path and release_descriptor is not None:
+            if not target.is_file() or target.read_bytes() != release_descriptor:
+                target.write_bytes(release_descriptor)
+                copied += 1
+            continue
         if target.is_file() and target.read_bytes() == origin.read_bytes():
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
