@@ -1,5 +1,6 @@
 """@brief Regression tests for scoped exports, deletions, change detection and idempotence."""
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -129,6 +130,34 @@ class SyncTests(unittest.TestCase):
         """@brief Manual dispatch can update one plugin without selecting the other."""
         for plugin in MODULE.PLUGINS:
             self.assertEqual(MODULE.changed(self.source, plugin, "workflow_dispatch", "", "HEAD", "CppTemplateGenerator"), plugin == "CppTemplateGenerator")
+
+    def test_data_asset_manager_exports_release_without_tests(self):
+        """@brief Keep development tests and beta metadata out of the standalone release."""
+        plugin = "DataAssetManager"
+        descriptor = {
+            "IsBetaVersion": True,
+            "Modules": [{"Name": plugin}, {"Name": "DataAssetManagerTests"}],
+        }
+        self.write(self.source, f"{plugin}/{plugin}.uplugin", json.dumps(descriptor))
+        self.write(self.source, f"{plugin}/Source/{plugin}/Editor.cpp", "editor")
+        self.write(self.source, f"{plugin}/Source/DataAssetManagerTests/Test.cpp", "test")
+        self.write(self.target, "Source/DataAssetManagerTests/Stale.cpp", "stale test")
+        self.commit(self.source)
+
+        after = MODULE.git(self.source, "rev-parse", "HEAD")
+        for candidate in MODULE.PLUGINS:
+            self.assertEqual(MODULE.changed(self.source, candidate, "push", self.before, after), candidate == plugin)
+        MODULE.sync(self.source, self.target, plugin)
+        published = json.loads((self.target / f"{plugin}.uplugin").read_text())
+        self.assertFalse(published["IsBetaVersion"])
+        self.assertEqual(published["Modules"], [{"Name": plugin}])
+        self.assertEqual((self.target / f"Source/{plugin}/Editor.cpp").read_text(), "editor")
+        self.assertFalse((self.target / "Source/DataAssetManagerTests/Test.cpp").exists())
+        self.assertFalse((self.target / "Source/DataAssetManagerTests/Stale.cpp").exists())
+        self.assertEqual((self.target / "README.md").read_text(), "standalone readme")
+        self.commit(self.target)
+        MODULE.sync(self.source, self.target, plugin)
+        self.assertEqual(MODULE.git(self.target, "status", "--porcelain"), "")
 
     def test_plugin_allowlist_rejects_traversal(self):
         """@brief Plugin arguments cannot become arbitrary filesystem destinations."""

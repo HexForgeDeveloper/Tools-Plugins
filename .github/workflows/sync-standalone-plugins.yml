@@ -6,6 +6,7 @@ on:
     paths:
       - 'CppTemplateGenerator/**'
       - 'TextureChannelPacker/**'
+      - 'DataAssetManager/**'
       - '.github/workflows/sync-standalone-plugins.yml'
       - 'DevOps/Sync-StandalonePlugin.py'
       - 'DevOps/Tests/test_sync_standalone_plugin.py'
@@ -15,7 +16,7 @@ on:
         description: Plugin to synchronize
         type: choice
         default: all
-        options: [all, CppTemplateGenerator, TextureChannelPacker]
+        options: [all, CppTemplateGenerator, TextureChannelPacker, DataAssetManager]
 
 permissions:
   contents: read
@@ -37,6 +38,8 @@ jobs:
             secret: CPP_TEMPLATE_GENERATOR_DEPLOY_KEY
           - plugin: TextureChannelPacker
             secret: TEXTURE_CHANNEL_PACKER_DEPLOY_KEY
+          - plugin: DataAssetManager
+            secret: DATA_ASSET_MANAGER_DEPLOY_KEY
     steps:
       - name: Checkout exact source revision
         uses: actions/checkout@v6
