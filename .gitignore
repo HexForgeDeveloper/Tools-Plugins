@@ -20,6 +20,7 @@ Build/
 *.tmp
 .DS_Store
 Thumbs.db
+package-lock.json
 
 # Python tooling cache
 __pycache__/
